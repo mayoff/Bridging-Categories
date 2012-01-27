@@ -1,0 +1,13 @@
+#!/bin/bash
+
+cat types | while read cf ns; do
+    arg=${cf%%Ref}
+    arg=cf${arg#CF}
+    cat <<EOF
+@implementation $ns (bridging)
++ ($ns *):($cf)$arg { return (__bridge $ns *)$arg;
+- ($cf)${cf%%Ref} { return (__bridge $cf)self; }
+@end
+
+EOF
+done

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+cat types | while read cf ns; do
+    arg=${cf%%Ref}
+    arg=cf${arg#CF}
+    cat <<EOF
+@interface $ns (bridging)
++ ($ns *):($cf)$arg;
+@property (nonatomic, readonly) $cf ${cf%%Ref};
+@end
+
+EOF
+done
