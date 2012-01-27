@@ -4,26 +4,34 @@ ARC sure is great, isn't it?  I don't miss littering my code with `retain`, `rel
 
 Pretty much the only downside of ARC is that casting between toll-free bridging types (like `CFStringRef` to `NSString` and back) is a little more verbose.  Before ARC, I wrote this:
 
-    NSString *stringObject = (NSString *)cfString;
-    CFStringRef cfString = (CFStringRef)stringObject;
+```objective-c
+NSString *stringObject = (NSString *)cfString;
+CFStringRef cfString = (CFStringRef)stringObject;
+```
 
 After ARC, I have to write this:
 
-    NSString *stringObject = (__bridge NSString *)cfString;
-    CFStringRef cfString = (__bridge CFStringRef)stringObject;
+```objective-c
+NSString *stringObject = (__bridge NSString *)cfString;
+CFStringRef cfString = (__bridge CFStringRef)stringObject;
+```
 
 Of course, there are some shortcuts.  It's a little shorter to write this:
 
-    NSString *stringObject = (__bridge id)cfString;
-    CFStringRef cfString = (__bridge void *)stringObject; // or (__bridge CFTypeRef)stringObject
+```objective-c
+NSString *stringObject = (__bridge id)cfString;
+CFStringRef cfString = (__bridge void *)stringObject; // or (__bridge CFTypeRef)stringObject
+```
 
 I could even define a couple of macros:
 
-    #define fromCF (__bridge id)
-    #define toCF (__bridge CFTypeRef)
+```objective-c
+#define fromCF (__bridge id)
+#define toCF (__bridge CFTypeRef)
 
-    NSString *stringObject = fromCF cfString;
-    CFStringRef cfString = toCF stringObject;
+NSString *stringObject = fromCF cfString;
+CFStringRef cfString = toCF stringObject;
+```
 
 But using macros sometimes confuses Xcode's autocompletion mechanism.  And with or without macros, using the generic types `void *`, `CFTypeRef`, and `id` means giving up compiler type checking.
 
@@ -31,14 +39,16 @@ But using macros sometimes confuses Xcode's autocompletion mechanism.  And with 
 
 On the other hand, some *non*-toll-free-bridged types have handy conversions methods:
 
-    UIColor *uiColor = [UIColor colorWithCGColor:cgColor];
-    CGColorRef cgColor = uiColor.CGColor;
+```objective-c
+UIColor *uiColor = [UIColor colorWithCGColor:cgColor];
+CGColorRef cgColor = uiColor.CGColor;
 
-    UIBezierPath *uiPath = [UIBezierPath bezierPathWithCGPath:cgPath];
-    CGPathRef cgPath = uiPath.CGPath;
+UIBezierPath *uiPath = [UIBezierPath bezierPathWithCGPath:cgPath];
+CGPathRef cgPath = uiPath.CGPath;
 
-    UIImage *uiImage = [UIImage imageWithCGImage:cgImage];
-    CGImageRef cgImage = uiImage.CGImage;
+UIImage *uiImage = [UIImage imageWithCGImage:cgImage];
+CGImageRef cgImage = uiImage.CGImage;
+```
 
 There are probably others, but I happen to use those a lot.
 
@@ -46,43 +56,49 @@ There are probably others, but I happen to use those a lot.
 
 Thanks to the magic of Objective-C categories, we can imbue the toll-free-bridged classes with convenience methods too.  For example, we can trivially give `NSString` a `CFString` method:
 
-    @interface NSString (bridging)
+```objective-c
+@interface NSString (bridging)
 
-    @property (nonatomic, readonly) CFStringRef CFString;
-    
-    @end
+@property (nonatomic, readonly) CFStringRef CFString;
 
-    @implementation NSString (bridging)
-    
-    - (CFStringRef)CFString {
-        return (__bridge CFStringRef)self;
-    }
+@end
 
-    @end
+@implementation NSString (bridging)
 
-    // Use it like this:
+- (CFStringRef)CFString {
+    return (__bridge CFStringRef)self;
+}
 
-        CFStringRef cfString = stringObject.CFString;
+@end
+
+// Use it like this:
+
+    CFStringRef cfString = stringObject.CFString;
+```
 
 That's pretty nice.  What about the other direction?  We could follow the pattern of `UIColor` and friends:
 
-    + (NSString *)stringWithCFString:(CFStringRef)cfString {
-        return (__bridge NSString *)cfString;
-    }
+```objective-c
++ (NSString *)stringWithCFString:(CFStringRef)cfString {
+    return (__bridge NSString *)cfString;
+}
 
-    // Use it like this:
+// Use it like this:
 
-        NSString *stringObject = [NSString stringWithCFString:cfString];
+    NSString *stringObject = [NSString stringWithCFString:cfString];
+```
 
 But that's even more verbose than using `__bridge` directly.  Let's pick a shorter selector.  How much shorter can we make it?  Hold on to your britches, because the answer might surprise you:
 
-    + (NSString *):(CFStringRef)cfString {
-        return (__bridge NSString *)cfString;
-    }
+```objective-c
++ (NSString *):(CFStringRef)cfString {
+    return (__bridge NSString *)cfString;
+}
 
-    // Use it like this:
+// Use it like this:
 
-        NSString *stringObject = [NSString:cfString];
+    NSString *stringObject = [NSString:cfString];
+```
 
 Yes, you can have a selector that's nothing but a colon!  It doesn't get any shorter than that.  I think it's a pleasant combination of brevity and expressiveness, if a little exotic.
 
